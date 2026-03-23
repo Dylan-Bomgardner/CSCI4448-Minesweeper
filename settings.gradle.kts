@@ -1,0 +1,1 @@
+rootProject.name = "CSCI4448-Minesweeper"
