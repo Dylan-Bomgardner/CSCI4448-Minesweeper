@@ -1,13 +1,7 @@
 package Tile;
 
-import Observe.ObserveSubject;
-import Observe.Observer;
-
-import javax.security.auth.Subject;
-import java.util.List;
-
 public class Tile {
-    List<Observer> observers;
+    private int numMinesSurrounding = 0;
 
     private Boolean clicked = false;
     private Boolean flagged = false;
@@ -24,4 +18,9 @@ public class Tile {
     public Boolean clicked() { return clicked; }
 
     public Boolean flagged() { return flagged; }
+
+    public Boolean isMine() { return false; }
+
+    public void setNumMinesSurrounding(int numMines) { this.numMinesSurrounding = numMines; }
+    public int getNumMinesSurrounding() { return numMinesSurrounding; }
 }
