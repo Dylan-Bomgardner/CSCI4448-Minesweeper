@@ -1,5 +1,6 @@
 import Observe.GridObserver;
 import Observe.GridSubject;
+import Observe.InputObserver;
 import Observe.Observer;
 import Tile.Tile;
 import Tile.Mine;
@@ -8,12 +9,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class Grid implements GridSubject {
+public class Grid implements GridSubject, InputObserver {
     private List<List<Tile>> tiles;
     private List<GridObserver> observers;
     private int numMines;
     private int tilesCleared = 0;
     private int numTiles;
+
+    @Override
+    public void update(String event, int x, int y) {
+        System.out.println("event: " + event);
+        switch (event) {
+            case "tile_triggered":
+                click(x, y);
+                break;
+            case "tile_flagged":
+                flag(x, y);
+                break;
+            case "restart":
+                break;
+            default:
+                break;
+        }
+    }
 
     public Grid(List<List<Tile>> tiles, int numMines) {
         this.tiles = tiles;
@@ -45,25 +63,26 @@ public class Grid implements GridSubject {
         if (clickedTile.flagged()) return;
         if (clickedTile.clicked()) return;
 
+        clickedTile.click();
         String event;
         if (clickedTile.isMine()) {
-            clickedTile.click();
             event = "bomb_click";
         } else {
-            clickedTile.click();
             tilesCleared++;
-            event = "blank_click";
+            event = "show_" + clickedTile.getNumMinesSurrounding();
         }
         notifyObservers(event, x, y);
     }
 
     public void flag(int x, int y) {
         if (!clickValid(x, y)) return;
-
         Tile flaggedTile = tiles.get(x).get(y);
+        if (flaggedTile.clicked()) {
+            return;
+        }
         flaggedTile.flag();
-
-        notifyObservers("flag", x, y);
+        String event = flaggedTile.flagged() ? "flag" : "remove_flag";
+        notifyObservers(event, x, y);
     }
 
     @Override
@@ -86,6 +105,14 @@ public class Grid implements GridSubject {
     public Tile getTile(int x, int y) {
         if (!clickValid(x, y)) throw new IndexOutOfBoundsException("Invalid Coords");
         return tiles.get(x).get(y);
+    }
+
+    public int getRowCount() {
+        return tiles.size();
+    }
+
+    public int getColumnCount() {
+        return tiles.isEmpty() ? 0 : tiles.getFirst().size();
     }
 
     private void initializeNeighborCounts() {
