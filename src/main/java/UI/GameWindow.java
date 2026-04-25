@@ -211,6 +211,9 @@ public class GameWindow extends JFrame implements GridObserver {
                 gameOver = true;
                 statusLabel.setText("You lose");
                 break;
+            case "reveal_mine":
+                setTileAppearance(x, y, tileBombIcon, "", null);
+                break;
             case "show_0":
                 setTileAppearance(x, y, tilePressedIcon, "", null);
                 break;
@@ -243,6 +246,10 @@ public class GameWindow extends JFrame implements GridObserver {
                 break;
             case "remove_flag":
                 setTileAppearance(x, y, tileNotPressedIcon, "", null);
+                break;
+            case "win":
+                gameOver = true;
+                statusLabel.setText("You win");
                 break;
             default:
                 break;

@@ -15,10 +15,10 @@ public class Grid implements GridSubject, InputObserver {
     private int numMines;
     private int tilesCleared = 0;
     private int numTiles;
+    private boolean gameOver = false;
 
     @Override
     public void update(String event, int x, int y) {
-        System.out.println("event: " + event);
         switch (event) {
             case "tile_triggered":
                 click(x, y);
@@ -56,26 +56,35 @@ public class Grid implements GridSubject, InputObserver {
     }
 
     public void click(int x, int y) {
-        if (!clickValid(x, y)) return;
+        if (gameOver || !clickValid(x, y)) {
+            return;
+        }
 
         Tile clickedTile = tiles.get(x).get(y);
 
-        if (clickedTile.flagged()) return;
-        if (clickedTile.clicked()) return;
-
-        clickedTile.click();
-        String event;
-        if (clickedTile.isMine()) {
-            event = "bomb_click";
-        } else {
-            tilesCleared++;
-            event = "show_" + clickedTile.getNumMinesSurrounding();
+        if (clickedTile.flagged() || clickedTile.clicked()) {
+            return;
         }
-        notifyObservers(event, x, y);
+        if (clickedTile.isMine()) {
+            clickedTile.click();
+            gameOver = true;
+            notifyObservers("bomb_click", x, y);
+            revealRemainingMines(x, y);
+            return;
+        }
+
+        revealConnectedTiles(x, y);
+
+        if (allTilesCleared()) {
+            gameOver = true;
+            notifyObservers("win", -1, -1);
+        }
     }
 
     public void flag(int x, int y) {
-        if (!clickValid(x, y)) return;
+        if (gameOver || !clickValid(x, y)) {
+            return;
+        }
         Tile flaggedTile = tiles.get(x).get(y);
         if (flaggedTile.clicked()) {
             return;
@@ -103,7 +112,9 @@ public class Grid implements GridSubject, InputObserver {
     }
 
     public Tile getTile(int x, int y) {
-        if (!clickValid(x, y)) throw new IndexOutOfBoundsException("Invalid Coords");
+        if (!clickValid(x, y)) {
+            throw new IndexOutOfBoundsException("Invalid Coords");
+        }
         return tiles.get(x).get(y);
     }
 
@@ -131,7 +142,9 @@ public class Grid implements GridSubject, InputObserver {
         // want  to view every tile around the current one, which is why we skip (0, 0) as well
         for (int rowOffset = -1; rowOffset <= 1; rowOffset++) {
             for (int columnOffset = -1; columnOffset <= 1; columnOffset++) {
-                if (rowOffset == 0 && columnOffset == 0) continue;
+                if (rowOffset == 0 && columnOffset == 0) {
+                    continue;
+                }
 
                 int neighborRow = row + rowOffset;
                 int neighborColumn = column + columnOffset;
@@ -142,6 +155,59 @@ public class Grid implements GridSubject, InputObserver {
             }
         }
         return count;
+    }
+
+    private void revealConnectedTiles(int startRow, int startColumn) {
+        List<int[]> tilesToReveal = new ArrayList<>();
+        tilesToReveal.add(new int[]{startRow, startColumn});
+
+        while (!tilesToReveal.isEmpty()) {
+            int[] currentTileCoordinates = tilesToReveal.removeLast();
+            int row = currentTileCoordinates[0];
+            int column = currentTileCoordinates[1];
+
+            if (!clickValid(row, column)) {
+                continue;
+            }
+
+            Tile tile = tiles.get(row).get(column);
+            if (tile.clicked() || tile.flagged() || tile.isMine()) {
+                continue;
+            }
+
+            tile.click();
+            tilesCleared++;
+            notifyObservers("show_" + tile.getNumMinesSurrounding(), row, column);
+
+            if (tile.getNumMinesSurrounding() != 0) {
+                continue;
+            }
+
+            for (int rowOffset = -1; rowOffset <= 1; rowOffset++) {
+                for (int columnOffset = -1; columnOffset <= 1; columnOffset++) {
+                    if (rowOffset == 0 && columnOffset == 0) {
+                        continue;
+                    }
+                    int[] neighborCoordinates = {row + rowOffset, column + columnOffset};
+                    tilesToReveal.add(neighborCoordinates);
+                }
+            }
+        }
+    }
+
+    private void revealRemainingMines(int clickedRow, int clickedColumn) {
+        for (int row = 0; row < tiles.size(); row++) {
+            for (int column = 0; column < tiles.getFirst().size(); column++) {
+                if (row == clickedRow && column == clickedColumn) {
+                    continue;
+                }
+
+                Tile tile = tiles.get(row).get(column);
+                if (tile.isMine()) {
+                    notifyObservers("reveal_mine", row, column);
+                }
+            }
+        }
     }
 
     public static class Builder {
@@ -167,11 +233,15 @@ public class Grid implements GridSubject, InputObserver {
         }
 
         public Builder addMines(int numMines) {
-            if (tiles == null) throw new IllegalStateException("tiles must be set before adding mines");
+            if (tiles == null) {
+                throw new IllegalStateException("tiles must be set before adding mines");
+            }
             int rows = tiles.size();
             int cols = tiles.getFirst().size();
 
-            if (numMines > rows * cols) throw new IllegalArgumentException("Too many mines for grid size");
+            if (numMines > rows * cols) {
+                throw new IllegalArgumentException("Too many mines for grid size");
+            }
 
             this.numMines = numMines;
             int minesPlaced = 0;
@@ -189,8 +259,12 @@ public class Grid implements GridSubject, InputObserver {
         }
 
         public Grid build() {
-            if (tiles == null) throw new IllegalStateException("tiles must be set");
-            if (numMines < 0)  throw new IllegalStateException("numMines must be >= 0");
+            if (tiles == null) {
+                throw new IllegalStateException("tiles must be set");
+            }
+            if (numMines < 0)  {
+                throw new IllegalStateException("numMines must be >= 0");
+            }
             return new Grid(this);
         }
     }
