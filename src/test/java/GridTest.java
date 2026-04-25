@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class GridTest {
@@ -35,6 +36,8 @@ public class GridTest {
         tiles.get(1).add(new Tile());
 
         Grid grid = new Grid(tiles, 1);
+        // adding bad innput
+        assertFalse(grid.clickValid(-1, 0));
         assertFalse(grid.clickValid(3, 3));
         assertTrue(grid.clickValid(1, 1));
     }
@@ -67,5 +70,22 @@ public class GridTest {
         Grid grid = new Grid(tiles, 1);
         grid.flag(0, 0);
         assertTrue(tiles.get(0).get(0).flagged());
+    }
+
+    @Test
+    public void testNeighborCountsAreInitialized() {
+        List<List<Tile>> tiles = new ArrayList<>();
+        tiles.add(new ArrayList<>());
+        tiles.add(new ArrayList<>());
+        tiles.get(0).add(new Tile());
+        tiles.get(0).add(new Mine());
+        tiles.get(1).add(new Tile());
+        tiles.get(1).add(new Tile());
+
+        Grid grid = new Grid(tiles, 1);
+
+        assertEquals(1, grid.getTile(0, 0).getNumMinesSurrounding());
+        assertEquals(1, grid.getTile(1, 0).getNumMinesSurrounding());
+        assertEquals(1, grid.getTile(1, 1).getNumMinesSurrounding());
     }
 }

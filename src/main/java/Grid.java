@@ -20,6 +20,7 @@ public class Grid implements GridSubject {
         this.numMines = numMines;
         this.numTiles = tiles.size() * tiles.getFirst().size();
         this.observers = new ArrayList<>();
+        initializeNeighborCounts();
     }
 
     private Grid(Builder builder) {
@@ -27,13 +28,13 @@ public class Grid implements GridSubject {
         this.numMines = builder.numMines;
         this.numTiles = tiles.size() * tiles.getFirst().size();
         this.observers = new ArrayList<>();
-        // Todo set the number for the blank tiles
+        initializeNeighborCounts();
     }
 
     public Boolean allTilesCleared() { return (numMines + tilesCleared == numTiles); }
 
     public Boolean clickValid(int x, int y) {
-        return tiles.size() > x && tiles.getFirst().size() > y;
+        return x >= 0 && y >= 0 && tiles.size() > x && tiles.getFirst().size() > y;
     }
 
     public void click(int x, int y) {
@@ -44,14 +45,14 @@ public class Grid implements GridSubject {
         if (clickedTile.flagged()) return;
         if (clickedTile.clicked()) return;
 
-        clickedTile.click();
-
         String event;
         if (clickedTile.isMine()) {
+            clickedTile.click();
             event = "bomb_click";
         } else {
-            event = "blank_click";
+            clickedTile.click();
             tilesCleared++;
+            event = "blank_click";
         }
         notifyObservers(event, x, y);
     }
@@ -80,6 +81,40 @@ public class Grid implements GridSubject {
         for (GridObserver observer : observers) {
             observer.update(event, x, y);
         }
+    }
+
+    public Tile getTile(int x, int y) {
+        if (!clickValid(x, y)) throw new IndexOutOfBoundsException("Invalid Coords");
+        return tiles.get(x).get(y);
+    }
+
+    private void initializeNeighborCounts() {
+        for (int row = 0; row < tiles.size(); row++) {
+            for (int column = 0; column < tiles.getFirst().size(); column++) {
+                Tile tile = tiles.get(row).get(column);
+                if (!tile.isMine()) {
+                    tile.setNumMinesSurrounding(countNeighboringMines(row, column));
+                }
+            }
+        }
+    }
+
+    private int countNeighboringMines(int row, int column) {
+        int count = 0;
+        // want  to view every tile around the current one, which is why we skip (0, 0) as well
+        for (int rowOffset = -1; rowOffset <= 1; rowOffset++) {
+            for (int columnOffset = -1; columnOffset <= 1; columnOffset++) {
+                if (rowOffset == 0 && columnOffset == 0) continue;
+
+                int neighborRow = row + rowOffset;
+                int neighborColumn = column + columnOffset;
+
+                if (clickValid(neighborRow, neighborColumn) && tiles.get(neighborRow).get(neighborColumn).isMine()) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     public static class Builder {
