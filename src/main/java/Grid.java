@@ -95,12 +95,12 @@ public class Grid implements GridSubject, InputObserver {
     }
 
     @Override
-    public void subscribe(GridObserver observer) {
+    public void register(GridObserver observer) {
         observers.add(observer);
     }
 
     @Override
-    public void unsubscribe(GridObserver observer) {
+    public void unregister(GridObserver observer) {
         observers.remove(observer);
     }
 

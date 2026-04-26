@@ -1,5 +1,6 @@
 import Tile.Tile;
 import Tile.Mine;
+import Observe.GridObserver;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -10,6 +11,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class GridTest {
+    private static class TestGridObserver implements GridObserver {
+        private int updateCount = 0;
+        private String lastEvent;
+        private int lastRow;
+        private int lastColumn;
+
+        @Override
+        public void update(String event, int x, int y) {
+            updateCount++;
+            lastEvent = event;
+            lastRow = x;
+            lastColumn = y;
+        }
+    }
+
 
     @Test
     public void testGridCreation() {
@@ -142,5 +158,84 @@ public class GridTest {
 
         assertTrue(grid.getTile(0, 0).clicked());
         assertFalse(grid.getTile(1, 0).flagged());
+    }
+
+    @Test
+    public void testUpdateTriggersRevealAndFlagActions() {
+        List<List<Tile>> tiles = new ArrayList<>();
+        tiles.add(new ArrayList<>());
+        tiles.add(new ArrayList<>());
+        tiles.get(0).add(new Tile());
+        tiles.get(0).add(new Mine());
+        tiles.get(1).add(new Tile());
+        tiles.get(1).add(new Tile());
+
+        Grid grid = new Grid(tiles, 1);
+
+        grid.update("tile_flagged", 1, 0);
+        grid.update("tile_triggered", 0, 0);
+
+        assertTrue(grid.getTile(1, 0).flagged());
+        assertTrue(grid.getTile(0, 0).clicked());
+    }
+
+    @Test
+    public void testBuilder() {
+        Grid grid = new Grid.Builder()
+                .setDimensions(2, 3)
+                .addMines(2)
+                .build();
+
+        int mineCount = 0;
+        for (int row = 0; row < grid.getRowCount(); row++) {
+            for (int column = 0; column < grid.getColumnCount(); column++) {
+                if (grid.getTile(row, column).isMine()) {
+                    mineCount++;
+                }
+            }
+        }
+
+        assertEquals(2, grid.getRowCount());
+        assertEquals(3, grid.getColumnCount());
+        assertEquals(2, mineCount);
+    }
+
+    @Test
+    public void testBuilderSetTiles() {
+        List<List<Tile>> tiles = new ArrayList<>();
+        tiles.add(new ArrayList<>());
+        tiles.get(0).add(new Tile());
+        tiles.get(0).add(new Mine());
+
+        Grid grid = new Grid.Builder()
+                .setTiles(tiles)
+                .build();
+
+        assertEquals(1, grid.getRowCount());
+        assertEquals(2, grid.getColumnCount());
+        assertTrue(grid.getTile(0, 1).isMine());
+    }
+
+    @Test
+    public void testRegisterAndUnregisterObserver() {
+        List<List<Tile>> tiles = new ArrayList<>();
+        tiles.add(new ArrayList<>());
+        tiles.get(0).add(new Tile());
+
+        Grid grid = new Grid(tiles, 0);
+        TestGridObserver observer = new TestGridObserver();
+
+        grid.register(observer);
+        grid.notifyObservers("flag", 0, 0);
+
+        assertEquals(1, observer.updateCount);
+        assertEquals("flag", observer.lastEvent);
+        assertEquals(0, observer.lastRow);
+        assertEquals(0, observer.lastColumn);
+
+        grid.unregister(observer);
+        grid.notifyObservers("show_0", 0, 0);
+
+        assertEquals(1, observer.updateCount);
     }
 }

@@ -10,12 +10,12 @@ public class Input implements InputSubject {
     private final List<InputObserver> observers = new ArrayList<>();
 
     @Override
-    public void subscribe(InputObserver observer) {
+    public void register(InputObserver observer) {
         observers.add(observer);
     }
 
     @Override
-    public void unsubscribe(InputObserver observer) {
+    public void unregister(InputObserver observer) {
         observers.remove(observer);
     }
 

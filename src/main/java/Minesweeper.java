@@ -38,9 +38,9 @@ public class Minesweeper implements InputObserver {
         Input input = new Input();
         GameWindow ui = new GameWindow(grid, input);
         Minesweeper game = new Minesweeper(rows, columns, mineCount, grid, input, ui);
-        grid.subscribe(ui);
-        input.subscribe(grid);
-        input.subscribe(game);
+        grid.register(ui);
+        input.register(grid);
+        input.register(game);
         game.play();
     }
 
@@ -52,16 +52,16 @@ public class Minesweeper implements InputObserver {
     }
 
     private void resetGame() {
-        input.unsubscribe(grid);
-        grid.unsubscribe(ui);
+        input.unregister(grid);
+        grid.unregister(ui);
 
         grid = new Grid.Builder()
                 .setDimensions(rows, columns)
                 .addMines(mineCount)
                 .build();
 
-        grid.subscribe(ui);
-        input.subscribe(grid);
+        grid.register(ui);
+        input.register(grid);
         ui.resetBoard();
         game_over = false;
         win = false;

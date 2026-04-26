@@ -1,7 +1,7 @@
 package Observe;
 
 public interface InputSubject {
-    void subscribe(InputObserver observer);
-    void unsubscribe(InputObserver observer);
+    void register(InputObserver observer);
+    void unregister(InputObserver observer);
     void notifyObservers(String event, int x, int y);
 }
